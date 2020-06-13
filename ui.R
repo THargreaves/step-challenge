@@ -5,7 +5,6 @@ library(shinythemes)
 library(shinyWidgets)
 
 library(dplyr)
-library(ggplot2)
 library(plotly)
 
 ui <- navbarPage(
@@ -14,30 +13,45 @@ ui <- navbarPage(
   id = 'navbar',
   collapsible = TRUE,
   tabPanel(
-    title = 'Login',
-    uiOutput('user_ui')
+    #### ACCOUNT ####
+    title = 'Account',
+    uiOutput('account_ui')
   ),
   navbarMenu(
     title = 'My Data',
     tabPanel(
+      #### DATA ENTRY ####
       title = 'Data Entry',
       dateInput(
-        'date',
+        'activity_date',
         'Date of Activity',
         value = Sys.Date(),
         format = 'DD, d MM',
         min = START_DATE,
-        max = END_DATE
+        max = min(END_DATE, Sys.Date()),
+        width = '100%'
       ),
       tags$div(
-        dateButton('Back', 'angle-left'),
-        dateButton('Forwards', 'angle-right'),
-        style = 'margin-bottom: 2px'
+        actionButton('back',
+                     "Back",
+                     icon('angle-left'),
+                     class = 'date-button'),
+        actionButton('forwards',
+                     "Forwards",
+                     icon('angle-right'),
+                     class = 'date-button'),
+        class = 'date-button-top-row'
       ),
       tags$div(
-        dateButton('Yesterday', 'caret-left'),
-        dateButton('Today', 'caret-down'),
-        style = 'margin-bottom: 15px'
+        actionButton('yesterday',
+                     "Yesterday",
+                     icon('caret-left'),
+                     class = 'date-button'),
+        actionButton('today',
+                     "Today",
+                     icon('caret-down'),
+                     class = 'date-button'),
+        class = 'date-button-bottom-row'
       ),
       numericInput(
         'num_steps',
@@ -68,16 +82,46 @@ ui <- navbarPage(
       )
     ),
     tabPanel(
+      #### HISTORY ####
       title = 'History',
-      tabsetPanel(
-        id = 'history_tab',
-        tabPanel(
-          title = "Plot",
-          plotOutput('history_plot')
+      sidebarLayout(
+        sidebarPanel(
+          conditionalPanel(
+            condition = 'input.history_tab == "Plot"',
+            checkboxInput(
+              'apply_feature_multiplier',
+              'Apply Feature Multiplier',
+              value = TRUE
+            ),
+            checkboxInput(
+              'show_average',
+              'Show Daily Average',
+              value = FALSE
+            )
+          ),
+          conditionalPanel(
+            condition = 'input.history_tab == "Table"',
+            checkboxInput(
+              'colour_rows',
+              'Colour Rows',
+              value = FALSE
+            ),
+          )
         ),
-        tabPanel(
-          title = "Table",
-          dataTableOutput('history_table')
+        mainPanel(
+          tabsetPanel(
+            id = 'history_tab',
+            tabPanel(
+              title = "Plot",
+              tags$p(tags$i(paste("A dashed line is used to mark your daily",
+                                  "average step equivalent"))),
+              plotlyOutput('history_plot')
+            ),
+            tabPanel(
+              title = "Table",
+              dataTableOutput('history_table')
+            )
+          )
         )
       )
     )
@@ -85,6 +129,7 @@ ui <- navbarPage(
   navbarMenu(
     title = 'Comparisions',
     tabPanel(
+      #### INDIVIDUAL COMPARISON ####
       title = 'Individual Comparison',
       sidebarLayout(
         sidebarPanel(
@@ -115,6 +160,7 @@ ui <- navbarPage(
       )
     ),
     tabPanel(
+      #### TEAM COMPARISON ####
       title = 'Team Comparison',
       sidebarLayout(
         sidebarPanel(

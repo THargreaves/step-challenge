@@ -47,8 +47,8 @@ server <- function(input, output, session) {
     submit = 0
   )
 
-  # Login/Sign up UI
-  output$user_ui <- renderUI({
+  # Login UI
+  output$account_ui <- renderUI({
     if (is.null(state$user)) {
       tagList(
         checkboxInput(
@@ -250,34 +250,34 @@ server <- function(input, output, session) {
 
   # Data Entry
   observeEvent(input$back, {
-    updateDateInput(session, 'date', value = input$date - 1)
+    updateDateInput(session, 'activity_date', value = input$activity_date - 1)
   })
   observeEvent(input$forwards, {
-    updateDateInput(session, 'date', value = input$date + 1)
+    updateDateInput(session, 'activity_date', value = input$activity_date + 1)
   })
   observeEvent(input$yesterday, {
-    updateDateInput(session, 'date', value = Sys.Date() - 1)
+    updateDateInput(session, 'activity_date', value = Sys.Date() - 1)
   })
   observeEvent(input$today, {
-    updateDateInput(session, 'date', value = Sys.Date())
+    updateDateInput(session, 'activity_date', value = Sys.Date())
   })
-  observeEvent(input$date, {
-    if (input$date == START_DATE) {
+  observe({
+    if (input$activity_date == START_DATE) {
       disable('back')
     } else {
       enable('back')
     }
-    if (input$date == END_DATE) {
+    if (input$activity_date == min(END_DATE, Sys.Date())) {
       disable('forwards')
     } else {
       enable('forwards')
     }
-    if (input$date == Sys.Date() - 1) {
+    if (input$activity_date == Sys.Date() - 1) {
       disable('yesterday')
     } else {
       enable('yesterday')
     }
-    if (input$date == Sys.Date()) {
+    if (input$activity_date == Sys.Date()) {
       disable('today')
     } else {
       enable('today')
@@ -286,7 +286,7 @@ server <- function(input, output, session) {
   observeEvent(input$upload, {
     match <- tbl(conn, 'activity') %>%
       filter(user_id == !!state$user$user_id,
-             date == !!input$date) %>%
+             date == !!input$activity_date) %>%
       collect()
 
     if (nrow(match) > 0) {
@@ -308,11 +308,17 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$duplicate_confirm, {
-    req(!is.null(input$duplicate_confirm))
     if (input$duplicate_confirm) {
       state$submit <- state$submit + 1
+    } else {
+      sendSweetAlert(
+        session,
+        title = "Upload Cancelled",
+        text = "The existing database entry has not been altered",
+        type = 'error'
+      )
     }
-  })
+  }, ignoreNULL = TRUE)
 
   observeEvent(state$submit, {
     req(state$submit > 0)
@@ -320,7 +326,7 @@ server <- function(input, output, session) {
       if (is.null(state$overwrite_id)) {
         new_activity <- data.frame(
           user_id = state$user$user_id,
-          date = input$date,
+          date = input$activity_date,
           num_steps = input$num_steps,
           num_cycle = input$num_cycle,
           num_swim = input$num_swim
@@ -376,10 +382,15 @@ server <- function(input, output, session) {
       collect()
   })
 
-  output$history_plot <- renderPlot({
+  output$history_plot <- renderPlotly({
     history_gathered <- history_tbl() %>%
       gather(key = 'activity', value = 'step_equivalent',
-             num_steps:num_swim)
+             num_steps:num_swim) %>%
+      mutate(activity = case_when(
+        activity == 'num_steps' ~ 'Walking',
+        activity == 'num_cycle' ~ 'Cycling',
+        activity == 'num_swim' ~ 'Swimming'
+      ))
 
     step_average <- history_gathered %>%
       group_by(date) %>%
@@ -388,25 +399,34 @@ server <- function(input, output, session) {
       summarise(avg_step_equivalent = mean(total_step_equivalent)) %>%
       extract2('avg_step_equivalent')
 
-    history_gathered %>%
+    p <- history_gathered %>%
       filter(step_equivalent > 0) %>%
-      ggplot(aes(x = date, y = step_equivalent, fill = activity)) +
+      mutate(text = str_c(
+        "Date: ", date, "\n",
+        "Activity: ", activity, "\n",
+        "Step Equivalent: ", step_equivalent
+      )) %>%
+      ggplot(aes(x = date, y = step_equivalent, fill = activity, text = text)) +
         geom_col(position = 'stack') +
-        geom_hline(yintercept = step_average, linetype = 'dashed') +
-        annotate('text', y = step_average, x = START_DATE,
-                 label = 'Average', vjust = -0.5, hjust = -.1) +
         labs(
           x = 'Date',
           y = 'Step Equivalent',
           fill = 'Activity'
         ) +
-        coord_cartesian(xlim = c(START_DATE, END_DATE), expand = FALSE) +
-        theme(legend.position = 'bottom')
+        coord_cartesian(xlim = c(START_DATE, END_DATE), expand = FALSE)
+
+    if (input$show_average) {
+      p <- p + geom_hline(yintercept = step_average, linetype = 'dashed')
+    }
+
+    ggplotly(p, dynamicTicks = TRUE, tooltip = "text")
   })
 
   output$history_table <- renderDataTable({
     history_tbl() %>%
-      fix_column_names()
+      fix_column_names() %>%
+      datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
+                rownames= FALSE)
   })
 
   output$user_picker_ui <- renderUI({
@@ -418,7 +438,8 @@ server <- function(input, output, session) {
       multiple = TRUE,
       options = pickerOptions(
         actionsBox = TRUE,
-        liveSearch = TRUE
+        liveSearch = TRUE,
+        noneSelectedText = 'Nobody Selected'
       )
     )
   })
@@ -459,6 +480,17 @@ server <- function(input, output, session) {
       ) +
       xlim(START_DATE, min(Sys.Date(), END_DATE))
     ggplotly(p, dynamicTicks = TRUE)
+  })
+
+  output$individual_comparison_leaderboard <- renderDataTable({
+    req(nrow(individual_tbl()) > 0)
+    individual_tbl() %>%
+      group_by(name) %>%
+      summarise_at(vars(num_entries, total_steps, average_steps), sum) %>%
+      ungroup() %>%
+      fix_column_names() %>%
+      datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
+                rownames= FALSE)
   })
 
   team_tbl <- reactive({
@@ -505,6 +537,8 @@ server <- function(input, output, session) {
       group_by(team_name) %>%
       summarise_at(vars(num_entries, total_steps, average_steps), sum) %>%
       ungroup() %>%
-      fix_column_names()
+      fix_column_names() %>%
+      datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
+                rownames= FALSE)
   })
 }

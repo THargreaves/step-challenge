@@ -61,13 +61,3 @@ fix_column_names <- function(df) {
         gsub('(?<=^| )([a-z])', '\\U\\1\\E', ., perl = TRUE)
     })
 }
-
-dateButton <- function(title, icon) {
-  actionButton(
-    tolower(title),
-    title,
-    icon = icon(icon),
-    width = 'calc(50% - 2px)',
-    style = 'padding: 4px; font-size: 80%'
-  )
-}

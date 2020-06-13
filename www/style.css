@@ -1,3 +1,21 @@
 .well hr {
   border-top-color: #dce4ec;
 }
+
+.date-button {
+  width: calc(50% - 2px);
+  padding: 4px;
+  font-size: 80%;
+}
+
+.date-button-top-row {
+  margin-bottom: 2px;
+}
+
+.date-button-bottom-row {
+  margin-bottom: 15px;
+}
+
+.tab-content {
+  margin-top: 10px;
+}
