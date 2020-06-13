@@ -46,35 +46,10 @@ cookie_js <- '
   }
 '
 
-# Connect to database
-db_cfg <- fromJSON('db_config.json')
-conn <- dbConnect(
-  MariaDB(),
-  host = db_cfg$host,
-  dbname = db_cfg$dbname,
-  user = db_cfg$user,
-  password = db_cfg$password
-)
-
 # Queue disconnect on stop
 onStop(function() {
   dbDisconnect(conn)
 })
-
-# Collect team names
-team_tbl <- tbl(conn, 'team') %>%
-  select(team_id, team_name) %>%
-  collect()
-teams <- team_tbl$team_id
-names(teams) <- team_tbl$team_name
-
-# Collect user names
-user_tbl <- tbl(conn, 'user') %>%
-  transmute(user_id = user_id,
-            name = str_c(first_name, last_name, sep = ' ')) %>%
-  collect()
-users <- user_tbl$user_id
-names(users) <- user_tbl$name
 
 # Helper functions
 fix_column_names <- function(df) {
