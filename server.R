@@ -191,7 +191,9 @@ server <- function(input, output, session) {
         next_id <- dbGetQuery(conn, paste(
           'SELECT AUTO_INCREMENT',
           'FROM information_schema.TABLES',
-          'WHERE TABLE_NAME = "user"'))$AUTO_INCREMENT
+          'WHERE TABLE_NAME = "user"',
+          'AND TABLE_SCHEMA =',
+          db_cfg$dbname))$AUTO_INCREMENT
 
         new_user <- data.frame(
           first_name = search_fname,
