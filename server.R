@@ -3,7 +3,6 @@ library(shiny)
 library(shinyjs)
 library(shinyWidgets)
 
-library(Cairo)
 library(dplyr)
 library(ggplot2)
 library(jsonlite)
@@ -113,6 +112,9 @@ server <- function(input, output, session) {
           min = 0,
           width = '100%'
         ),
+        tags$p(tags$i(paste("If you have forgotten your ID, attempt to create",
+                            "a new user with your name, at which point you",
+                            "will be reminded of your existing ID."))),
         checkboxInput(
           'remember_me',
           "Remember Me (For 30 Days)",
@@ -171,7 +173,7 @@ server <- function(input, output, session) {
     if (input$first_name == "" || input$last_name == "" || input$team == "") {
       sendSweetAlert(
         session,
-        title = "Required Fields Can't Be Empty",
+        title = "All Fields Are Required",
         text = paste("Please make sure that you have filled in each field",
                      "before submitting"),
         type = 'error'
@@ -354,9 +356,10 @@ server <- function(input, output, session) {
         new_activity <- data.frame(
           user_id = state$user$user_id,
           date = input$activity_date,
-          num_steps = input$num_steps,
-          num_cycle = input$num_cycle,
-          num_swim = input$num_swim
+          raw_steps = input$num_steps,
+          raw_cycling = input$num_cycle,
+          raw_swimming = input$num_swim,
+          feature = input$feature
         )
         dbWriteTable(conn, 'activity', new_activity,
                      append = TRUE, row.names = FALSE)
@@ -375,6 +378,10 @@ server <- function(input, output, session) {
         text = paste0("Your activities were successfully submitted"),
         type = 'success'
       )
+      for (id in c('num_steps', 'num_cycle', 'num_swim')) {
+        updateNumericInput(session, id, value = 0)
+      }
+      updateCheckboxInput(session, 'feature', value = FALSE)
     }, error = function(e) {
       sendSweetAlert(
         session,
