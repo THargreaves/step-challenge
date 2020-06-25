@@ -1,5 +1,3 @@
-message('Running global')
-
 library(conflicted)
 library(ggplot2)
 library(dplyr)
