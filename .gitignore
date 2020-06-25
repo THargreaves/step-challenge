@@ -6,3 +6,6 @@
 db_config.json
 www/js.cookie.js
 
+renv/
+.RProfile
+renv.lock
