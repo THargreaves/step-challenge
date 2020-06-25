@@ -25,10 +25,10 @@ ui <- navbarPage(
       dateInput(
         'activity_date',
         'Date of Activity',
-        value = Sys.Date(),
+        value = max(START_DATE, Sys.Date()),
         format = 'DD, d MM',
         min = START_DATE,
-        max = min(END_DATE, Sys.Date()),
+        max = END_DATE,
         width = '100%'
       ),
       tags$div(

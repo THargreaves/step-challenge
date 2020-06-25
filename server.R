@@ -267,22 +267,26 @@ server <- function(input, output, session) {
     updateDateInput(session, 'activity_date', value = Sys.Date())
   })
   observe({
-    if (input$activity_date == START_DATE) {
+    if (input$activity_date <= START_DATE) {
       disable('back')
     } else {
       enable('back')
     }
-    if (input$activity_date == min(END_DATE, Sys.Date())) {
+    if (input$activity_date >= END_DATE) {
       disable('forwards')
     } else {
       enable('forwards')
     }
     if (input$activity_date == Sys.Date() - 1) {
       disable('yesterday')
+    } else if (Sys.Date() - 1 < START_DATE | Sys.Date() - 1 > END_DATE) {
+      disable('yesterday')
     } else {
       enable('yesterday')
     }
     if (input$activity_date == Sys.Date()) {
+      disable('today')
+    } else if (Sys.Date() < START_DATE | Sys.Date() > END_DATE) {
       disable('today')
     } else {
       enable('today')

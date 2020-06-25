@@ -10,10 +10,10 @@ conflict_prefer('renderDataTable', 'DT', quiet = TRUE)
 conflict_prefer('show', 'shinyjs', quiet = TRUE)
 
 # Constants
-START_DATE = as.Date('2020-06-01')
-END_DATE = as.Date('2020-06-30')
 CYCLE_STEP_EQUIV = 100
 SWIM_STEP_EQUIV = 203
+START_DATE <- as.Date('2020-06-29')
+END_DATE <- as.Date('2020-08-09')
 
 # Theming
 theme_set(theme_classic())
