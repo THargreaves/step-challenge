@@ -96,7 +96,7 @@ server <- function(input, output, session) {
         selectInput(
           'team',
           "Manager",
-          choices = c('', teams),
+          choices = c('No Manager' = -1L, teams),
           width = '100%'
         ),
         actionButton(
@@ -173,7 +173,7 @@ server <- function(input, output, session) {
     }
   })
   observeEvent(input$sign_up, {
-    if (input$first_name == "" || input$last_name == "" || input$team == "") {
+    if (input$first_name == "" || input$last_name == "") {
       sendSweetAlert(
         session,
         title = "All Fields Are Required",
@@ -198,13 +198,12 @@ server <- function(input, output, session) {
           'FROM information_schema.TABLES',
           'WHERE TABLE_NAME = "user"',
           'AND TABLE_SCHEMA =',
-          db_cfg$dbname))$AUTO_INCREMENT
+          paste0('"', db_cfg$dbname, '"')))$AUTO_INCREMENT
 
-        new_user <- data.frame(
+        new_user <- tibble(
           first_name = search_fname,
           last_name = search_lname,
-          team_id = as.integer(input$team),
-          stringsAsFactors = FALSE
+          team_id = ifelse(input$team == -1, NA, input$team)
         )
         dbWriteTable(conn, 'user', new_user, append = TRUE, row.names = FALSE)
 
