@@ -27,6 +27,7 @@ server <- function(input, output, session) {
   # Collect team names
   team_tbl <- tbl(conn, 'team') %>%
     select(team_id, manager) %>%
+    arrange(manager) %>%
     collect()
   teams <- team_tbl$team_id
   names(teams) <- team_tbl$manager
@@ -92,7 +93,7 @@ server <- function(input, output, session) {
         ),
         selectInput(
           'team',
-          "Team",
+          "Manager",
           choices = c('', teams),
           width = '100%'
         ),
