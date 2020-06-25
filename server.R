@@ -26,10 +26,10 @@ server <- function(input, output, session) {
 
   # Collect team names
   team_tbl <- tbl(conn, 'team') %>%
-    select(team_id, team_name) %>%
+    select(team_id, manager) %>%
     collect()
   teams <- team_tbl$team_id
-  names(teams) <- team_tbl$team_name
+  names(teams) <- team_tbl$manager
 
   # Collect user names
   user_tbl <- tbl(conn, 'user') %>%
@@ -518,7 +518,7 @@ server <- function(input, output, session) {
       left_join(tbl(conn, 'user'), by = 'user_id') %>%
       filter(team_id %in% !!input$teams) %>%
       left_join(tbl(conn, 'team'), by = 'team_id') %>%
-      group_by(team_name, date) %>%
+      group_by(manager, date) %>%
       summarise(
         num_entries = n(),
         total_steps = sum(num_steps, na.rm = TRUE),
@@ -532,14 +532,14 @@ server <- function(input, output, session) {
   output$team_comparison_time_series <- renderPlotly({
     req(length(team_tbl()) > 0)
     p <- team_tbl() %>%
-      group_by(team_name) %>%
+      group_by(manager) %>%
       mutate(
         total_steps = case_when(
           input$team_cummulative_steps ~ cumsum(total_steps),
           TRUE ~ total_steps
         )
       ) %>%
-      ggplot(aes(x = date, y = total_steps, col = team_name)) +
+      ggplot(aes(x = date, y = total_steps, col = manager)) +
         geom_line() +
         labs(
           x = 'Date',
@@ -553,11 +553,11 @@ server <- function(input, output, session) {
   output$team_comparison_leaderboard <- renderDataTable({
     req(length(team_tbl()) > 0)
     team_tbl() %>%
-      group_by(team_name) %>%
+      group_by(manager) %>%
       summarise_at(vars(num_entries, total_steps, average_steps), sum) %>%
       ungroup() %>%
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
-                rownames= FALSE)
+                rownames = FALSE)
   })
 }
