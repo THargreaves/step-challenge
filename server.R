@@ -17,7 +17,7 @@ server <- function(input, output, session) {
   # Connect to database
   db_cfg <- fromJSON('db_config.json')
   conn <- dbConnect(
-    MariaDB(),
+    MySQL(),
     host = db_cfg$host,
     dbname = db_cfg$dbname,
     user = db_cfg$user,
@@ -381,7 +381,8 @@ server <- function(input, output, session) {
         num_swim = num_swim * SWIM_STEP_EQUIV
       ) %>%
       select(-activity_id, -user_id) %>%
-      collect()
+      collect() %>%
+      mutate(date = as.Date(date))
   })
 
   output$history_plot <- renderPlotly({
@@ -459,7 +460,8 @@ server <- function(input, output, session) {
         average_steps = mean(num_steps, na.rm = TRUE)
       ) %>%
       ungroup() %>%
-      collect()
+      collect() %>%
+      mutate(date = as.Date(date))
   })
 
   output$individual_comparison_time_series <- renderPlotly({
@@ -523,7 +525,8 @@ server <- function(input, output, session) {
         average_steps = mean(num_steps, na.rm = TRUE)
       ) %>%
       ungroup() %>%
-      collect()
+      collect() %>%
+      mutate(date = as.Date(date))
   })
 
   output$team_comparison_time_series <- renderPlotly({
