@@ -23,6 +23,9 @@ server <- function(input, output, session) {
     password = db_cfg$password
   )
 
+  # Queue disconnect
+  session$onSessionEnded(function() {dbDisconnect(conn)})
+
   # Collect team names
   team_tbl <- tbl(conn, 'team') %>%
     select(team_id, manager) %>%
