@@ -74,6 +74,9 @@ ui <- navbarPage(
         min = 0,
         width = '100%'
       ),
+      uiOutput(
+        'feature_toggle_ui'
+      ),
       actionButton(
         'upload',
         "Upload",

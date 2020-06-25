@@ -292,6 +292,24 @@ server <- function(input, output, session) {
       enable('today')
     }
   })
+
+  # See https://www.ttested.com/input-permanence-with-shiny/
+  current_feature <- reactiveVal(FALSE)
+  observeEvent(input$feature, {
+    current_feature(input$feature)
+  })
+
+  output$feature_toggle_ui <- renderUI({
+    week <- as.integer(input$activity_date - START_DATE) %/% 7 + 1
+      checkboxInput(
+        'feature',
+        paste0("Participated in Featured Activity (",
+               ifelse(is.na(FEATURES[week]), "TBC", FEATURES[week]),
+               ")"),
+        value = current_feature()
+      )
+  })
+
   observeEvent(input$upload, {
     match <- tbl(conn, 'activity') %>%
       filter(user_id == !!state$user$user_id,
