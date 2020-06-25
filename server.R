@@ -6,8 +6,10 @@ library(shinyWidgets)
 library(Cairo)
 library(dplyr)
 library(ggplot2)
+library(jsonlite)
 library(magrittr)
 library(plotly)
+library(RMySQL)
 library(tidyr)
 
 server <- function(input, output, session) {
@@ -491,6 +493,20 @@ server <- function(input, output, session) {
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
                 rownames= FALSE)
+  })
+
+  output$teams_selector_ui <- renderUI({
+    pickerInput(
+      'teams',
+      "Teams",
+      teams,
+      selected = teams,
+      multiple = TRUE,
+      options = pickerOptions(
+        actionsBox = TRUE,
+        liveSearch = TRUE
+      )
+    )
   })
 
   team_tbl <- reactive({

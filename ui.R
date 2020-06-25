@@ -164,17 +164,7 @@ ui <- navbarPage(
       title = 'Team Comparison',
       sidebarLayout(
         sidebarPanel(
-          pickerInput(
-            'teams',
-            "Teams",
-            teams,
-            selected = teams,
-            multiple = TRUE,
-            options = pickerOptions(
-              actionsBox = TRUE,
-              liveSearch = TRUE
-            )
-          ),
+          uiOutput('teams_selector_ui'),
           conditionalPanel(
             condition = 'input.teams_tab == "Time Series"',
             tags$hr(),

@@ -1,8 +1,8 @@
+message('Running global')
+
 library(conflicted)
 library(ggplot2)
-library(jsonlite)
 library(dplyr)
-library(RMariaDB)
 library(stringr)
 
 # Manage conflicts
@@ -45,11 +45,6 @@ cookie_js <- '
     Shiny.onInputChange("jscookie", "");
   }
 '
-
-# Queue disconnect on stop
-onStop(function() {
-  dbDisconnect(conn)
-})
 
 # Helper functions
 fix_column_names <- function(df) {
