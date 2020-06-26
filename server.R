@@ -11,6 +11,8 @@ library(plotly)
 library(RMySQL)
 library(tidyr)
 
+#### TODO: Multiplier not added to teams ####
+
 server <- function(input, output, session) {
 
   # Connect to database
@@ -158,6 +160,11 @@ server <- function(input, output, session) {
                      "correct it to a valid ID or sign-up to this app"),
         type = 'error'
       )
+      if (!is.null(state$cookie_id)) {
+        js$rmcookie()
+        state$cookie_id <- NULL
+        state$user <- NULL
+      }
     } else {
       state$user <- list(
         user_id = search,
@@ -407,63 +414,94 @@ server <- function(input, output, session) {
   })
 
   history_tbl <- reactive({
+    input$upload
     req(state$user)
     tbl(conn, 'activity') %>%
       filter(user_id == !!state$user$user_id) %>%
-      mutate(
-        num_cycle = num_cycle * CYCLE_STEP_EQUIV,
-        num_swim = num_swim * SWIM_STEP_EQUIV
-      ) %>%
       select(-activity_id, -user_id) %>%
       collect() %>%
-      mutate(date = as.Date(date))
+      mutate(
+        date = as.Date(date),
+        equiv_steps = raw_steps,
+        equiv_cycling = raw_cycling * CYCLE_STEP_EQUIV,
+        equiv_swimming = raw_swimming * SWIM_STEP_EQUIV
+      )
   })
 
   output$history_plot <- renderPlotly({
+      multiplier <- history_tbl() %>%
+        select(date, feature) %>%
+        mutate(week = as.integer(date - START_DATE) %/% 7 + 1) %>%
+        group_by(week) %>%
+        mutate(feature = case_when(
+          input$apply_feature_multiplier ~ any(feature),
+          TRUE ~ FALSE)) %>%
+        ungroup() %>%
+        select(date, feature)
+
     history_gathered <- history_tbl() %>%
-      gather(key = 'activity', value = 'step_equivalent',
-             num_steps:num_swim) %>%
-      mutate(activity = case_when(
-        activity == 'num_steps' ~ 'Walking',
-        activity == 'num_cycle' ~ 'Cycling',
-        activity == 'num_swim' ~ 'Swimming'
-      ))
+      select(-feature) %>%
+      inner_join(multiplier, by = 'date') %>%
+      mutate(raw_feature = case_when(
+        feature ~ (equiv_steps + equiv_cycling + equiv_swimming) *
+            (MULTIPLIER - 1),
+        TRUE ~ 0
+      ), equiv_feature = raw_feature) %>%
+      select(-feature) %>%
+      pivot_longer(
+        -date,
+        names_to = c('.value', 'activity'),
+        names_sep = '_'
+      ) %>%
+      mutate(
+        activity = factor(activity,
+                          levels = c('steps', 'cycling', 'swimming', 'feature'))
+        )
 
     step_average <- history_gathered %>%
       group_by(date) %>%
-      summarise(total_step_equivalent = sum(step_equivalent),
+      summarise(total_step_equivalent = sum(equiv),
                 .groups = 'drop') %>%
       summarise(avg_step_equivalent = mean(total_step_equivalent)) %>%
       extract2('avg_step_equivalent')
 
     p <- history_gathered %>%
-      filter(step_equivalent > 0) %>%
+      filter(equiv > 0) %>%
       mutate(text = str_c(
         "Date: ", date, "\n",
         "Activity: ", activity, "\n",
-        "Step Equivalent: ", step_equivalent
+        case_when(
+          activity %in% c('steps', 'feature') ~ '',
+          TRUE ~ str_c("Minutes: ", as.character(raw), "\n")
+        ),
+        "Step Equivalent: ", equiv
       )) %>%
-      ggplot(aes(x = date, y = step_equivalent, fill = activity, text = text)) +
-        geom_col(position = 'stack') +
+      ggplot(aes(x = date, y = equiv, fill = activity, text = text)) +
+        geom_col(position = position_stack(reverse = TRUE),
+                 alpha = 0.5, col = 'black') +
+        scale_y_continuous(expand = c(0, 0)) +
+        scale_fill_manual(values = c(
+          '#F8766D', '#7CAE00', '#00BFC4', '#CF9400'
+        )) +
         labs(
           x = 'Date',
           y = 'Step Equivalent',
           fill = 'Activity'
         ) +
-        coord_cartesian(xlim = c(START_DATE, END_DATE), expand = FALSE)
+        theme(axis.text.x = element_text(angle = 90))
 
     if (input$show_average) {
       p <- p + geom_hline(yintercept = step_average, linetype = 'dashed')
     }
 
-    ggplotly(p, dynamicTicks = TRUE, tooltip = "text")
+    ggplotly(p, tooltip = "text")
   })
 
   output$history_table <- renderDataTable({
     history_tbl() %>%
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
-                rownames= FALSE)
+                rownames = FALSE)
   })
 
   output$user_picker_ui <- renderUI({
@@ -483,24 +521,26 @@ server <- function(input, output, session) {
 
   individual_tbl <- reactive({
     tbl(conn, 'activity') %>%
-      select(user_id, date, num_steps) %>%
       left_join(tbl(conn, 'user'), by = 'user_id') %>%
       filter(user_id %in% c(!!state$user$user_id, !!input$users)) %>%
-      mutate(name = str_c(first_name, last_name, sep = ' ')) %>%
-      group_by(name, date) %>%
-      summarise(
-        num_entries = n(),
-        total_steps = sum(num_steps, na.rm = TRUE),
-        average_steps = mean(num_steps, na.rm = TRUE)
-      ) %>%
-      ungroup() %>%
       collect() %>%
-      mutate(date = as.Date(date))
+      mutate(
+        date = as.Date(date),
+        equiv_steps = raw_steps,
+        equiv_cycling = raw_cycling * CYCLE_STEP_EQUIV,
+        equiv_swimming = raw_swimming * SWIM_STEP_EQUIV,
+        name = str_c(first_name, last_name, sep = ' ')
+      )
   })
 
   output$individual_comparison_time_series <- renderPlotly({
     req(length(individual_tbl()) > 0)
     p <- individual_tbl() %>%
+      group_by(name, date) %>%
+      summarise(
+        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming),
+        .groups = 'drop'
+      ) %>%
       group_by(name) %>%
       mutate(
         total_steps = case_when(
@@ -508,27 +548,38 @@ server <- function(input, output, session) {
           TRUE ~ total_steps
         )
       ) %>%
-      ggplot(aes(x = date, y = total_steps, col = name)) +
+      mutate(text = str_c(
+        "Date: ", date, "\n",
+        case_when(
+          input$team_cummulative_steps ~ "Cummulative Step Equivalent: ",
+          TRUE ~ "Step Equivalent: "
+        ), format(total_steps, big.mark = ","), "\n",
+        "Participant: ", name
+      )) %>%
+      ggplot(aes(x = date, y = total_steps, col = name, text = text, group = name)) +
       geom_line() +
       labs(
         x = 'Date',
         y = paste0('Total Steps', ifelse(input$individual_cummulative_steps,
                                          ' (Cummulative)', '')),
         col = 'User'
-      ) +
-      xlim(START_DATE, min(Sys.Date(), END_DATE))
-    ggplotly(p, dynamicTicks = TRUE)
+      )
+    ggplotly(p, tooltip = 'text')
   })
 
   output$individual_comparison_leaderboard <- renderDataTable({
     req(nrow(individual_tbl()) > 0)
     individual_tbl() %>%
       group_by(name) %>%
-      summarise_at(vars(num_entries, total_steps, average_steps), sum) %>%
-      ungroup() %>%
+      summarise(
+        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming),
+        num_entries = n(),
+        avg_steps = round(mean(equiv_steps + equiv_cycling + equiv_swimming)),
+        .groups = 'drop'
+      ) %>%
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
-                rownames= FALSE)
+                rownames = FALSE)
   })
 
   output$teams_selector_ui <- renderUI({
@@ -546,26 +597,29 @@ server <- function(input, output, session) {
   })
 
   team_tbl <- reactive({
+    input$upload
     req(length(input$teams) > 0)
     tbl(conn, 'activity') %>%
-      select(user_id, date, num_steps) %>%
       left_join(tbl(conn, 'user'), by = 'user_id') %>%
       filter(team_id %in% !!input$teams) %>%
-      left_join(tbl(conn, 'team'), by = 'team_id') %>%
-      group_by(manager, date) %>%
-      summarise(
-        num_entries = n(),
-        total_steps = sum(num_steps, na.rm = TRUE),
-        average_steps = mean(num_steps, na.rm = TRUE)
-      ) %>%
-      ungroup() %>%
+      inner_join(tbl(conn, 'team'), by = 'team_id') %>%
       collect() %>%
-      mutate(date = as.Date(date))
+      mutate(
+        date = as.Date(date),
+        equiv_steps = raw_steps,
+        equiv_cycling = raw_cycling * CYCLE_STEP_EQUIV,
+        equiv_swimming = raw_swimming * SWIM_STEP_EQUIV
+      )
   })
 
   output$team_comparison_time_series <- renderPlotly({
     req(length(team_tbl()) > 0)
     p <- team_tbl() %>%
+      group_by(manager, date) %>%
+      summarise(
+        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming),
+        .groups = 'drop'
+      ) %>%
       group_by(manager) %>%
       mutate(
         total_steps = case_when(
@@ -573,7 +627,15 @@ server <- function(input, output, session) {
           TRUE ~ total_steps
         )
       ) %>%
-      ggplot(aes(x = date, y = total_steps, col = manager)) +
+      mutate(text = str_c(
+        "Date: ", date, "\n",
+        case_when(
+          input$team_cummulative_steps ~ "Cummulative Step Equivalent: ",
+          TRUE ~ "Step Equivalent: "
+        ), format(total_steps, big.mark = ","), "\n",
+        "Team Manager: ", manager
+      )) %>%
+      ggplot(aes(x = date, y = total_steps, col = manager, text = text, group = manager)) +
         geom_line() +
         labs(
           x = 'Date',
@@ -581,15 +643,22 @@ server <- function(input, output, session) {
                                            ' (Cummulative)', '')),
           col = 'Team'
         )
-    ggplotly(p, dynamicTicks = TRUE)
+    ggplotly(p, tooltip = 'text', dynamicTicks = TRUE)
   })
 
   output$team_comparison_leaderboard <- renderDataTable({
     req(length(team_tbl()) > 0)
     team_tbl() %>%
-      group_by(manager) %>%
-      summarise_at(vars(num_entries, total_steps, average_steps), sum) %>%
-      ungroup() %>%
+      group_by(manager, size) %>%
+      summarise(
+        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming),
+        num_entries = n(),
+        avg_steps = round(mean(equiv_steps + equiv_cycling + equiv_swimming)),
+        participation_rate = round(100 * num_entries /
+          ((as.integer(max(min(Sys.Date(), END_DATE), START_DATE) - START_DATE) + 1))),
+        .groups = 'drop'
+      ) %>%
+      mutate(participation_rate = str_c(round(participation_rate / size), "%")) %>%
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
                 rownames = FALSE)

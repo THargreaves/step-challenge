@@ -116,9 +116,7 @@ ui <- navbarPage(
             id = 'history_tab',
             tabPanel(
               title = "Plot",
-              tags$p(tags$i(paste("A dashed line is used to mark your daily",
-                                  "average step equivalent"))),
-              plotlyOutput('history_plot')
+              plotlyOutput('history_plot', height = '600px')
             ),
             tabPanel(
               title = "Table",
@@ -152,7 +150,7 @@ ui <- navbarPage(
             id = 'individual_tab',
             tabPanel(
               title = "Time Series",
-              plotlyOutput('individual_comparison_time_series')
+              plotlyOutput('individual_comparison_time_series', height = '600px')
             ),
             tabPanel(
               "Leaderboard",
@@ -183,7 +181,7 @@ ui <- navbarPage(
             id = 'teams_tab',
             tabPanel(
               title = "Time Series",
-              plotlyOutput('team_comparison_time_series')
+              plotlyOutput('team_comparison_time_series', height = '600px')
             ),
             tabPanel(
               "Leaderboard",

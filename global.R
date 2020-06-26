@@ -15,6 +15,7 @@ END_DATE <- as.Date('2020-08-09')
 CYCLE_STEP_EQUIV <- 100
 SWIM_STEP_EQUIV <- 203
 FEATURES <- c('Walking', 'Running', 'Cycling', NA, NA, NA)
+MULTIPLIER <- 1.2
 
 # Theming
 theme_set(theme_classic())
