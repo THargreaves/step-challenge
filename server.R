@@ -671,7 +671,7 @@ server <- function(input, output, session) {
       'week',
       "Week",
       min = 1,
-      max = 6,
+      max = week,
       value = week,
       step = 1
     )
