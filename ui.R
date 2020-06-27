@@ -193,7 +193,27 @@ ui <- navbarPage(
     )
   ),
   tabPanel(
-    title = 'Winners'
+    #### WINNERS ####
+    title = 'Winners',
+    sidebarLayout(
+      sidebarPanel(
+        uiOutput('week_selector_ui')
+      ),
+      mainPanel(
+        tabsetPanel(
+          id = 'winners_tab',
+          tabPanel(
+            title = "Plot",
+            textOutput('winners_text'),
+            plotlyOutput('winners_plot', height = '600px')
+          ),
+          tabPanel(
+            "Table",
+            dataTableOutput('winners_table')
+          )
+        )
+      )
+    )
   ),
   # Stylesheets and scripts
   tags$head(

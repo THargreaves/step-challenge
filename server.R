@@ -663,4 +663,102 @@ server <- function(input, output, session) {
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
                 rownames = FALSE)
   })
+
+  output$week_selector_ui <- renderUI({
+    week <- as.integer(min(END_DATE,
+                           max(Sys.Date(), START_DATE)) - START_DATE) %/% 7 + 1
+    sliderInput(
+      'week',
+      "Week",
+      min = 1,
+      max = week,
+      value = week,
+      step = 1
+    )
+  })
+
+  winners_tbl <- reactive({
+    req(input$week)
+    tbl(conn, 'activity') %>%
+      left_join(tbl(conn, 'user'), by = 'user_id') %>%
+      collect() %>%
+      mutate(
+        date = as.Date(date),
+        equiv_steps = raw_steps,
+        equiv_cycling = raw_cycling * CYCLE_STEP_EQUIV,
+        equiv_swimming = raw_swimming * SWIM_STEP_EQUIV,
+        name = str_c(first_name, last_name, sep = ' '),
+        week = as.integer(date - START_DATE) %/% 7 + 1
+      ) %>%
+      filter(week %in% c(input$week, max(1, input$week - 1))) %>%
+      group_by(name, week) %>%
+      mutate(feature = case_when(
+        input$apply_feature_multiplier ~ any(feature),
+        TRUE ~ FALSE)) %>%
+      group_by(week) %>%
+      mutate(
+        equiv_feature = (equiv_steps + equiv_cycling + equiv_swimming) *
+          MULTIPLIER - 1
+      ) %>%
+      group_by(name, week) %>%
+      summarise(
+        total_steps = sum(equiv_steps + equiv_cycling +
+                            equiv_swimming + equiv_feature),
+        n = n(),
+        .groups = 'drop'
+      ) %>%
+      filter(input$week == 1 | week != input$week | n < 6) %>%
+      select(-n) %>%
+      mutate(week = factor(case_when(
+        week == input$week ~ 'current',
+        TRUE ~ 'previous'
+      ), levels = c('previous', 'current'))) %>%
+      spread(key = 'week', value = 'total_steps', drop = FALSE) %>%
+      filter(input$week == 1 | !is.na(previous), !is.na(current))
+  })
+
+  output$winners_text <- renderText({
+    req(input$week)
+    if (input$week > 1) {
+      paste("NB: To qualify for a prize in weeks 2-6, you must have not won",
+            "a prize before and you must have had at least six entries in the",
+            "previous week.")
+    }
+  })
+
+  output$winners_plot <- renderPlotly({
+    req(input$week)
+    if (input$week == 1) {
+      plot_tbl <- winners_tbl() %>%
+        mutate(metric = current)
+    } else {
+      plot_tbl <- winners_tbl() %>%
+        mutate(metric = current / previous)
+    }
+
+    p <- plot_tbl %>%
+      mutate(
+        name = reorder(name, -metric)
+      ) %>%
+      mutate(text = str_c(
+        "Name: ", name, "\n",
+        ifelse(input$week == 1, "Total Steps: ", "Step Ratio: "), metric,
+        ifelse(input$week == 1, "", "\nCurrent Steps: "),
+        ifelse(input$week == 1, "", current),
+        ifelse(input$week == 1, "", "\nPrevious Steps: "),
+        ifelse(input$week == 1, "", previous)
+      )) %>%
+      ggplot(aes(x = name, y = metric, fill = name, text = text)) +
+        geom_col(alpha = 0.5, col = 'black', show.legend = FALSE) +
+        labs(
+          x = 'Name',
+          y = ifelse(input$week == 1, 'Total Weekly Steps', 'Step Ratio'),
+          col = 'Team'
+        ) +
+        scale_y_continuous(expand = c(0, 0)) +
+        theme(axis.text.x = element_text(angle = 90))
+
+    ggplotly(p, tooltip = 'text') %>%
+      layout(showlegend = FALSE)
+  })
 }
