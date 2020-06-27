@@ -200,11 +200,11 @@ ui <- navbarPage(
         uiOutput('week_selector_ui')
       ),
       mainPanel(
+        textOutput('winners_text'),
         tabsetPanel(
           id = 'winners_tab',
           tabPanel(
             title = "Plot",
-            textOutput('winners_text'),
             plotlyOutput('winners_plot', height = '600px')
           ),
           tabPanel(
