@@ -6,6 +6,7 @@ library(stringr)
 # Manage conflicts
 conflict_prefer('dataTableOutput', 'DT', quiet = TRUE)
 conflict_prefer('filter', 'dplyr', quiet = TRUE)
+conflict_prefer("layout", "plotly", quiet = TRUE)
 conflict_prefer('renderDataTable', 'DT', quiet = TRUE)
 conflict_prefer('show', 'shinyjs', quiet = TRUE)
 
