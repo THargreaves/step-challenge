@@ -671,7 +671,7 @@ server <- function(input, output, session) {
       'week',
       "Week",
       min = 1,
-      max = week,
+      max = 6,
       value = week,
       step = 1
     )
@@ -760,5 +760,22 @@ server <- function(input, output, session) {
 
     ggplotly(p, tooltip = 'text') %>%
       layout(showlegend = FALSE)
+  })
+
+  output$winners_table <- renderDataTable({
+    req(input$week)
+    if (input$week == 1) {
+      table_tbl <- winners_tbl() %>%
+        select(name, total = current)
+    } else {
+      table_tbl <- winners_tbl() %>%
+        mutate(ratio = current / previous) %>%
+        select(name, previous, current, ratio)
+    }
+
+    table_tbl %>%
+    fix_column_names() %>%
+      datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
+                rownames = FALSE)
   })
 }
