@@ -544,7 +544,7 @@ server <- function(input, output, session) {
   })
 
   output$individual_comparison_time_series <- renderPlotly({
-    req(length(individual_tbl()) > 0)
+    req(nrow(individual_tbl()) > 0)
     p <- individual_tbl() %>%
       group_by(name, date) %>%
       summarise(
@@ -609,7 +609,7 @@ server <- function(input, output, session) {
 
   team_tbl <- reactive({
     input$upload
-    req(length(input$teams) > 0)
+    req(nrow(input$teams) > 0)
     tbl(conn, 'activity') %>%
       left_join(tbl(conn, 'user'), by = 'user_id') %>%
       filter(team_id %in% !!input$teams) %>%
@@ -634,7 +634,7 @@ server <- function(input, output, session) {
   })
 
   output$team_comparison_time_series <- renderPlotly({
-    req(length(team_tbl()) > 0)
+    req(nrow(team_tbl()) > 0)
     p <- team_tbl() %>%
       group_by(manager, date) %>%
       summarise(
@@ -668,7 +668,7 @@ server <- function(input, output, session) {
   })
 
   output$team_comparison_leaderboard <- renderDataTable({
-    req(length(team_tbl()) > 0)
+    req(nrow(team_tbl()) > 0)
     team_tbl() %>%
       group_by(manager, size) %>%
       summarise(
