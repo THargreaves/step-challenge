@@ -529,7 +529,17 @@ server <- function(input, output, session) {
         equiv_steps = raw_steps,
         equiv_cycling = raw_cycling * CYCLE_STEP_EQUIV,
         equiv_swimming = raw_swimming * SWIM_STEP_EQUIV,
-        name = str_c(first_name, last_name, sep = ' ')
+        name = str_c(first_name, last_name, sep = ' '),
+        week = as.integer(date - START_DATE) %/% 7 + 1
+      ) %>%
+      group_by(name, week) %>%
+      mutate(feature = case_when(
+        input$apply_feature_multiplier ~ any(feature),
+        TRUE ~ FALSE)) %>%
+      ungroup() %>%
+      mutate(
+        equiv_feature = (equiv_steps + equiv_cycling + equiv_swimming) *
+          (MULTIPLIER - 1)
       )
   })
 
@@ -538,7 +548,8 @@ server <- function(input, output, session) {
     p <- individual_tbl() %>%
       group_by(name, date) %>%
       summarise(
-        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming),
+        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming +
+                            equiv_feature),
         .groups = 'drop'
       ) %>%
       group_by(name) %>%
@@ -572,9 +583,9 @@ server <- function(input, output, session) {
     individual_tbl() %>%
       group_by(name) %>%
       summarise(
-        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming),
+        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming + equiv_feature),
         num_entries = n(),
-        avg_steps = round(mean(equiv_steps + equiv_cycling + equiv_swimming)),
+        avg_steps = round(mean(equiv_steps + equiv_cycling + equiv_swimming + equiv_feature)),
         .groups = 'drop'
       ) %>%
       fix_column_names() %>%
@@ -608,7 +619,17 @@ server <- function(input, output, session) {
         date = as.Date(date),
         equiv_steps = raw_steps,
         equiv_cycling = raw_cycling * CYCLE_STEP_EQUIV,
-        equiv_swimming = raw_swimming * SWIM_STEP_EQUIV
+        equiv_swimming = raw_swimming * SWIM_STEP_EQUIV,
+        week = as.integer(date - START_DATE) %/% 7 + 1
+      ) %>%
+      group_by(first_name, last_name, week) %>%
+      mutate(feature = case_when(
+        input$apply_feature_multiplier ~ any(feature),
+        TRUE ~ FALSE)) %>%
+      ungroup() %>%
+      mutate(
+        equiv_feature = (equiv_steps + equiv_cycling + equiv_swimming) *
+          (MULTIPLIER - 1)
       )
   })
 
@@ -617,7 +638,7 @@ server <- function(input, output, session) {
     p <- team_tbl() %>%
       group_by(manager, date) %>%
       summarise(
-        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming),
+        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming + equiv_feature),
         .groups = 'drop'
       ) %>%
       group_by(manager) %>%
@@ -651,9 +672,9 @@ server <- function(input, output, session) {
     team_tbl() %>%
       group_by(manager, size) %>%
       summarise(
-        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming),
+        total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming + equiv_feature),
         num_entries = n(),
-        avg_steps = round(mean(equiv_steps + equiv_cycling + equiv_swimming)),
+        avg_steps = round(mean(equiv_steps + equiv_cycling + equiv_swimming + equiv_feature)),
         participation_rate = round(100 * num_entries /
           ((as.integer(max(min(Sys.Date(), END_DATE), START_DATE) - START_DATE) + 1))),
         .groups = 'drop'
@@ -698,7 +719,7 @@ server <- function(input, output, session) {
       group_by(week) %>%
       mutate(
         equiv_feature = (equiv_steps + equiv_cycling + equiv_swimming) *
-          MULTIPLIER - 1
+          (MULTIPLIER - 1)
       ) %>%
       group_by(name, week) %>%
       summarise(
