@@ -609,7 +609,7 @@ server <- function(input, output, session) {
 
   team_tbl <- reactive({
     input$upload
-    req(nrow(input$teams) > 0)
+    req(length(input$teams) > 0)
     tbl(conn, 'activity') %>%
       left_join(tbl(conn, 'user'), by = 'user_id') %>%
       filter(team_id %in% !!input$teams) %>%
