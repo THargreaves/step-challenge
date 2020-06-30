@@ -538,8 +538,8 @@ server <- function(input, output, session) {
         TRUE ~ FALSE)) %>%
       ungroup() %>%
       mutate(
-        equiv_feature = (equiv_steps + equiv_cycling + equiv_swimming) *
-          (MULTIPLIER - 1)
+        equiv_feature = round((equiv_steps + equiv_cycling + equiv_swimming) *
+          (MULTIPLIER - 1))
       )
   })
 
@@ -628,8 +628,8 @@ server <- function(input, output, session) {
         TRUE ~ FALSE)) %>%
       ungroup() %>%
       mutate(
-        equiv_feature = (equiv_steps + equiv_cycling + equiv_swimming) *
-          (MULTIPLIER - 1)
+        equiv_feature = round((equiv_steps + equiv_cycling + equiv_swimming) *
+          (MULTIPLIER - 1))
       )
   })
 
@@ -718,8 +718,8 @@ server <- function(input, output, session) {
         TRUE ~ FALSE)) %>%
       group_by(week) %>%
       mutate(
-        equiv_feature = (equiv_steps + equiv_cycling + equiv_swimming) *
-          (MULTIPLIER - 1)
+        equiv_feature = round((equiv_steps + equiv_cycling + equiv_swimming) *
+          (MULTIPLIER - 1))
       ) %>%
       group_by(name, week) %>%
       summarise(
