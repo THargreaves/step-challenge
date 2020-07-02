@@ -500,6 +500,10 @@ server <- function(input, output, session) {
 
   output$history_table <- renderDataTable({
     history_tbl() %>%
+      mutate(
+        total_steps = round((equiv_steps + equiv_cycling + equiv_swimming) *
+                              MULTIPLIER)
+      ) %>%
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
                 rownames = FALSE)
