@@ -375,9 +375,10 @@ server <- function(input, output, session) {
       } else {
         dbSendQuery(conn, paste0(
           "UPDATE activity ",
-          "SET num_steps=", input$num_steps,
-          ", num_cycle=", input$num_cycle,
-          ", num_swim=", input$num_swim,
+          "SET raw_steps=", input$num_steps,
+          ", raw_cycling=", input$num_cycle,
+          ", raw_swimming=", input$num_swim,
+          ", feature=", as.integer(input$feature),
           " WHERE activity_id=", state$overwrite_id
         ))
       }
