@@ -368,7 +368,7 @@ server <- function(input, output, session) {
           raw_steps = input$num_steps,
           raw_cycling = input$num_cycle,
           raw_swimming = input$num_swim,
-          feature = input$feature
+          feature = as.integer(input$feature)
         )
         dbWriteTable(conn, 'activity', new_activity,
                      append = TRUE, row.names = FALSE)
