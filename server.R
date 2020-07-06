@@ -692,6 +692,8 @@ server <- function(input, output, session) {
     tbl(conn, 'activity') %>%
       left_join(tbl(conn, 'user'), by = 'user_id') %>%
       collect() %>%
+      left_join(WINNERS, by = 'user_id') %>%
+      filter(is.na(win_week) | win_week >= input$week) %>%
       mutate(
         date = as.Date(date),
         equiv_steps = raw_steps,

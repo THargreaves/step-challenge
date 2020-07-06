@@ -17,6 +17,10 @@ CYCLE_STEP_EQUIV <- 100
 SWIM_STEP_EQUIV <- 203
 FEATURES <- c('Walking', 'Running', 'Cycling', NA, NA, NA)
 MULTIPLIER <- 1.2
+WINNERS <- tibble(
+  'user_id' = 34L,
+  'win_week' = 1L
+)
 
 # Theming
 theme_set(theme_classic())
