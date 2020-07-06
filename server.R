@@ -496,6 +496,7 @@ server <- function(input, output, session) {
       mutate(
         total_steps = equiv_steps + equiv_cycling + equiv_swimming + equiv_feature
       ) %>%
+      arrange(date) %>%
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
                 rownames = FALSE)
@@ -581,6 +582,7 @@ server <- function(input, output, session) {
         avg_steps = round(mean(equiv_steps + equiv_cycling + equiv_swimming + equiv_feature)),
         .groups = 'drop'
       ) %>%
+      arrange(desc(total_steps)) %>%
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
                 rownames = FALSE)
@@ -669,6 +671,7 @@ server <- function(input, output, session) {
         .groups = 'drop'
       ) %>%
       mutate(participation_rate = str_c(round(participation_rate / size), "%")) %>%
+      arrange(desc(total_steps)) %>%
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
                 rownames = FALSE)
@@ -774,15 +777,17 @@ server <- function(input, output, session) {
     req(input$week)
     if (input$week == 1) {
       table_tbl <- winners_tbl() %>%
-        select(name, total = current)
+        select(name, total = current) %>%
+        arrange(desc(total))
     } else {
       table_tbl <- winners_tbl() %>%
         mutate(ratio = current / previous) %>%
-        select(name, previous, current, ratio)
+        select(name, previous, current, ratio) %>%
+        arrange(desc(ratio))
     }
 
     table_tbl %>%
-    fix_column_names() %>%
+      fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
                 rownames = FALSE)
   })
