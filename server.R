@@ -718,7 +718,7 @@ server <- function(input, output, session) {
         n = n(),
         .groups = 'drop'
       ) %>%
-      filter(input$week == 1 | week != input$week | n < 6) %>%
+      filter(input$week == 1 | week == input$week | n >= 6) %>%
       select(-n) %>%
       mutate(week = factor(case_when(
         week == input$week ~ 'current',
