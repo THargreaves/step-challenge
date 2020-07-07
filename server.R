@@ -754,10 +754,12 @@ server <- function(input, output, session) {
       mutate(text = str_c(
         "Name: ", name, "\n",
         ifelse(input$week == 1, "Total Steps: ", "Step Ratio: "), metric,
-        ifelse(input$week == 1, "", "\nCurrent Steps: "),
-        ifelse(input$week == 1, "", current),
-        ifelse(input$week == 1, "", "\nPrevious Steps: "),
-        ifelse(input$week == 1, "", previous)
+        case_when(
+          input$week == 1 ~ "",
+          TRUE ~ str_c(
+            "\nCurrent Steps: ", current, "\nPrevious Steps: ", previous
+          )
+        )
       )) %>%
       ggplot(aes(x = name, y = metric, fill = name, text = text)) +
         geom_col(alpha = 0.5, col = 'black', show.legend = FALSE) +
