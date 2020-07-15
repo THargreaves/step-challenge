@@ -660,17 +660,29 @@ server <- function(input, output, session) {
 
   output$team_comparison_leaderboard <- renderDataTable({
     req(nrow(team_tbl()) > 0)
+    partipation <- team_tbl() %>%
+      group_by(user_id, team_id, size) %>%
+      summarise(
+        participated = n() /
+          ((as.integer(max(min(Sys.Date(), END_DATE), START_DATE) - START_DATE) + 1)) >= 0.5
+      ) %>%
+      group_by(team_id, size) %>%
+      summarise(
+        participation_rate = sum(participated)
+      ) %>%
+      mutate(participation_rate = round(participation_rate / size, 2)) %>%
+      select(-size)
+
     team_tbl() %>%
-      group_by(manager, size) %>%
+      group_by(team_id, manager, size) %>%
       summarise(
         total_steps = sum(equiv_steps + equiv_cycling + equiv_swimming + equiv_feature),
         num_entries = n(),
         avg_steps = round(mean(equiv_steps + equiv_cycling + equiv_swimming + equiv_feature)),
-        participation_rate = round(100 * num_entries /
-          ((as.integer(max(min(Sys.Date(), END_DATE), START_DATE) - START_DATE) + 1))),
         .groups = 'drop'
       ) %>%
-      mutate(participation_rate = str_c(round(participation_rate / size), "%")) %>%
+      left_join(partipation, by = 'team_id') %>%
+      select(-team_id) %>%
       arrange(desc(total_steps)) %>%
       fix_column_names() %>%
       datatable(options = list(scrollX = TRUE, scrollCollapse = TRUE),
