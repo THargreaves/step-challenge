@@ -185,6 +185,12 @@ ui <- navbarPage(
             ),
             tabPanel(
               "Leaderboard",
+              tags$p(tags$i(paste(
+                "Partipation rate is defined as the proportion of team members",
+                "that have submitted steps for at least half of the days the",
+                "challenge has been running. This will need to be at least 0.5",
+                "to be on track for the team prize."
+              ))),
               dataTableOutput('team_comparison_leaderboard')
             )
           )
