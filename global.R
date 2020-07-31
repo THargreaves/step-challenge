@@ -18,7 +18,7 @@ SWIM_STEP_EQUIV <- 203
 FEATURES <- c('Walking', 'Running', 'Cycling', NA, NA, NA)
 MULTIPLIER <- 1.2
 WINNERS <- tibble(
-  'user_id' = c(34L, 91L, 74L, 8L, 30L, 54L),
+  'user_id' = c(34L, 91L, 74L, 8L, 30L, 54L, 22L),
   'win_week' = c(1L, 2L, 2L, 3L, 3L, 4L, 4L)
 )
 
