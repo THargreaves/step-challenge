@@ -15,7 +15,8 @@ START_DATE <- as.Date('2020-06-29')
 END_DATE <- as.Date('2020-08-09')
 CYCLE_STEP_EQUIV <- 100
 SWIM_STEP_EQUIV <- 203
-FEATURES <- c('Walking', 'Running', 'Cycling', NA, NA, NA)
+FEATURES <- c('Walking', 'Running', 'Cycling',
+              'Yoga', 'Zumba', 'Strength Workout')
 MULTIPLIER <- 1.2
 WINNERS <- tibble(
   'user_id' = c(34L, 91L, 74L, 8L, 30L, 54L, 22L),
