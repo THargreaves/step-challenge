@@ -19,7 +19,7 @@ FEATURES <- c('Walking', 'Running', 'Cycling',
               'Yoga', 'Zumba', 'Strength Workout')
 MULTIPLIER <- 1.2
 WINNERS <- tibble(
-  'user_id' = c(34L, 91L, 74L, 8L, 30L, 54L, 22L, 67L, 76L, 75L, 40L),
+  'user_id' = c(34L, 91L, 74L, 8L, 30L, 54L, 42L, 67L, 76L, 75L, 40L),
   'win_week' = c(1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L, 5L, 6L, 6L)
 )
 
