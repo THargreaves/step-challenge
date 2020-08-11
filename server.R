@@ -707,6 +707,7 @@ server <- function(input, output, session) {
     tbl(conn, 'activity') %>%
       left_join(tbl(conn, 'user'), by = 'user_id') %>%
       collect() %>%
+      mutate_at(vars(user_id), as.integer) %>%
       left_join(WINNERS, by = 'user_id') %>%
       filter(is.na(win_week) | win_week >= input$week) %>%
       mutate(
